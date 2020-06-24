@@ -25,17 +25,16 @@
 #include <string.h>
 
 #if defined _MSC_VER && _MSC_VER >= 1900
-#  define restrict __restrict
+#define restrict __restrict
 #elif defined _MSC_VER
-#  define restrict
+#define restrict
 #endif
 
 /* Lehmer RNG. */
 #define RANDOM_MULTIPLIER 48271UL
 #define RANDOM_MODULUS 2147483647UL
 #define RANDOM_MAX (RANDOM_MODULUS - 1)
-#define RANDOM_NEXT(r)                                                         \
-  ((uint32_t)((uint64_t)(r)*RANDOM_MULTIPLIER % RANDOM_MODULUS))
+#define RANDOM_NEXT(r) ((uint32_t)((uint64_t)(r)*RANDOM_MULTIPLIER % RANDOM_MODULUS))
 
 #define MAX_ROUNDS 6
 
@@ -97,25 +96,20 @@ static struct units_attributes *load_units_attributes(FILE *file) {
   }
 
   if (num_kinds == 0) {
-    fputs("Parsing units attributes failed, num_kinds must be greater than 0\n",
-          stderr);
+    fputs("Parsing units attributes failed, num_kinds must be greater than 0\n", stderr);
     goto fail;
   }
 
   struct units_attributes *units_attributes =
-      malloc(sizeof(*units_attributes) +
-             num_kinds * sizeof(*units_attributes->attributes));
+      malloc(sizeof(*units_attributes) + num_kinds * sizeof(*units_attributes->attributes));
   if (units_attributes == NULL) {
-    fputs("Parsing units attributes failed, allocation of attributes failed\n",
-          stderr);
+    fputs("Parsing units attributes failed, allocation of attributes failed\n", stderr);
     goto fail;
   }
 
-  uint32_t *rapid_fire =
-      calloc((size_t)num_kinds * (size_t)num_kinds, sizeof(*rapid_fire));
+  uint32_t *rapid_fire = calloc((size_t)num_kinds * (size_t)num_kinds, sizeof(*rapid_fire));
   if (rapid_fire == NULL) {
-    fputs("Parsing units attributes failed, allocation of rapid fire failed\n",
-          stderr);
+    fputs("Parsing units attributes failed, allocation of rapid fire failed\n", stderr);
     goto fail_units_attributes;
   }
 
@@ -127,12 +121,9 @@ static struct units_attributes *load_units_attributes(FILE *file) {
     attr->rapid_fire = rapid_fire + (size_t)kind * (size_t)num_kinds;
 
     uint8_t num_rapid_fire;
-    n = fscanf(file, "%f%f%f%" SCNu8, &attr->weapons, &attr->shield,
-               &attr->armor, &num_rapid_fire);
+    n = fscanf(file, "%f%f%f%" SCNu8, &attr->weapons, &attr->shield, &attr->armor, &num_rapid_fire);
     if (n != 4) {
-      fprintf(stderr,
-              "Parsing units attributes failed, cannot scan kind #%" PRIu8 "\n",
-              kind);
+      fprintf(stderr, "Parsing units attributes failed, cannot scan kind #%" PRIu8 "\n", kind);
       goto fail_rapid_fire;
     }
 
@@ -170,51 +161,40 @@ fail:
   return NULL;
 }
 
-static void
-cleanup_units_attributes(struct units_attributes *units_attributes) {
+static void cleanup_units_attributes(struct units_attributes *units_attributes) {
   free(units_attributes->rapid_fire);
   free(units_attributes);
 }
 
-static struct combatant *
-load_combatants(FILE *restrict file,
-                const struct units_attributes *restrict units_attributes,
-                uint32_t num_combatants) {
+static struct combatant *load_combatants(FILE *restrict file, const struct units_attributes *restrict units_attributes,
+                                         uint32_t num_combatants) {
   const uint8_t num_kinds = units_attributes->num_kinds;
   int n;
 
   assert(num_combatants > 0 && num_combatants <= 2 * 256);
   assert(num_kinds > 0);
 
-  size_t total_size =
-      num_combatants * sizeof(struct combatant) +
-      num_combatants * num_kinds * sizeof(uint64_t) +
-      num_combatants * MAX_ROUNDS * num_kinds * sizeof(struct unit_group_stats);
+  size_t total_size = num_combatants * sizeof(struct combatant) + num_combatants * num_kinds * sizeof(uint64_t) +
+                      num_combatants * MAX_ROUNDS * num_kinds * sizeof(struct unit_group_stats);
   struct combatant *combatants = calloc(total_size, 1);
   if (combatants == NULL) {
-    fputs("Loading combatants failed, allocation of combatants failed\n",
-          stderr);
+    fputs("Loading combatants failed, allocation of combatants failed\n", stderr);
     goto fail;
   }
 
   uint64_t *unit_groups = (uint64_t *)&combatants[num_combatants];
-  struct unit_group_stats *stats =
-      (struct unit_group_stats *)&unit_groups[num_combatants * num_kinds];
+  struct unit_group_stats *stats = (struct unit_group_stats *)&unit_groups[num_combatants * num_kinds];
 
-  for (uint32_t i = 0; i < num_combatants;
-       i++, unit_groups += num_kinds, stats += MAX_ROUNDS * num_kinds) {
+  for (uint32_t i = 0; i < num_combatants; i++, unit_groups += num_kinds, stats += MAX_ROUNDS * num_kinds) {
     struct combatant *c = &combatants[i];
     c->unit_groups = unit_groups;
     c->stats = stats;
 
     uint8_t num_unit_groups;
-    n = fscanf(file, "%" SCNu8 "%" SCNu8 "%" SCNu8 "%" SCNu8,
-               &c->weapons_technology, &c->shielding_technology,
+    n = fscanf(file, "%" SCNu8 "%" SCNu8 "%" SCNu8 "%" SCNu8, &c->weapons_technology, &c->shielding_technology,
                &c->armor_technology, &num_unit_groups);
     if (n != 4) {
-      fprintf(stderr,
-              "Loading combatants failed, cannot scan combatant #%" PRIu32 "\n",
-              i);
+      fprintf(stderr, "Loading combatants failed, cannot scan combatant #%" PRIu32 "\n", i);
       goto fail_combatants;
     }
 
@@ -250,9 +230,8 @@ fail:
   return NULL;
 }
 
-static struct party *
-create_party(const struct units_attributes *restrict units_attributes,
-             struct combatant *combatants, uint32_t num_combatants) {
+static struct party *create_party(const struct units_attributes *restrict units_attributes,
+                                  struct combatant *combatants, uint32_t num_combatants) {
   const uint8_t num_kinds = units_attributes->num_kinds;
 
   assert(num_combatants <= 256);
@@ -291,8 +270,7 @@ create_party(const struct units_attributes *restrict units_attributes,
   for (uint32_t i = 0; i < num_combatants; i++) {
     const struct combatant *combatant = &combatants[i];
     for (uint8_t kind = 0; kind < num_kinds; kind++) {
-      float max_hull = 0.1f * units_attributes->attributes[kind].armor *
-                       (1.0f + 0.1f * combatant->armor_technology);
+      float max_hull = 0.1f * units_attributes->attributes[kind].armor * (1.0f + 0.1f * combatant->armor_technology);
       for (uint32_t j = 0; j < combatant->unit_groups[kind]; j++) {
         struct unit *unit = units++;
         unit->hull = max_hull;
@@ -310,25 +288,20 @@ fail:
   return NULL;
 }
 
-static void
-restore_shields(const struct units_attributes *restrict units_attributes,
-                struct party *restrict party) {
+static void restore_shields(const struct units_attributes *restrict units_attributes, struct party *restrict party) {
   const struct combatant *combatants = party->combatants;
   struct unit *units = party->units;
   uint64_t num_alive = party->num_alive;
 
   for (uint64_t i = 0; i < num_alive; i++) {
     struct unit *unit = &units[i];
-    unit->shield =
-        units_attributes->attributes[unit->kind].shield *
-        (1.0f + 0.1f * combatants[unit->combatant_id].shielding_technology);
+    unit->shield = units_attributes->attributes[unit->kind].shield *
+                   (1.0f + 0.1f * combatants[unit->combatant_id].shielding_technology);
   }
 }
 
-static void fire(const struct units_attributes *restrict units_attributes,
-                 struct party *restrict attackers_party,
-                 struct party *restrict defenders_party, uint32_t round,
-                 uint32_t *restrict random) {
+static void fire(const struct units_attributes *restrict units_attributes, struct party *restrict attackers_party,
+                 struct party *restrict defenders_party, uint32_t round, uint32_t *restrict random) {
   const uint8_t num_kinds = units_attributes->num_kinds;
 
   uint32_t r = *random;
@@ -345,17 +318,13 @@ static void fire(const struct units_attributes *restrict units_attributes,
     const struct unit *shooter = &shooters[i];
     uint8_t shooter_kind = shooter->kind;
 
-    const struct unit_attributes *shooter_attrs =
-        &units_attributes->attributes[shooter_kind];
+    const struct unit_attributes *shooter_attrs = &units_attributes->attributes[shooter_kind];
 
     struct combatant *attacker = &attackers[shooter->combatant_id];
 
-    struct unit_group_stats *shooter_stats =
-        &attacker->stats[round * num_kinds + shooter_kind];
+    struct unit_group_stats *shooter_stats = &attacker->stats[round * num_kinds + shooter_kind];
 
-    float damage =
-        shooter_attrs->weapons *
-        (1.0f + 0.1f * attackers[shooter->combatant_id].weapons_technology);
+    float damage = shooter_attrs->weapons * (1.0f + 0.1f * attackers[shooter->combatant_id].weapons_technology);
 
     uint32_t rapid_fire;
 
@@ -364,13 +333,11 @@ static void fire(const struct units_attributes *restrict units_attributes,
       struct unit *target = &targets[r % num_targets];
       uint8_t target_kind = target->kind;
 
-      const struct unit_attributes *target_attrs =
-          &units_attributes->attributes[target_kind];
+      const struct unit_attributes *target_attrs = &units_attributes->attributes[target_kind];
 
       struct combatant *defender = &defenders[target->combatant_id];
 
-      struct unit_group_stats *target_stats =
-          &defender->stats[round * num_kinds + target_kind];
+      struct unit_group_stats *target_stats = &defender->stats[round * num_kinds + target_kind];
 
       shooter_stats->times_fired++;
       target_stats->times_was_shot++;
@@ -380,10 +347,8 @@ static void fire(const struct units_attributes *restrict units_attributes,
         float hull_damage = damage - target->shield;
 
         if (hull_damage < 0.0f) {
-          float max_shield = target_attrs->shield *
-                             (1.0f + 0.1f * defender->shielding_technology);
-          float shield_damage =
-              0.01f * floorf(100.0f * damage / max_shield) * max_shield;
+          float max_shield = target_attrs->shield * (1.0f + 0.1f * defender->shielding_technology);
+          float shield_damage = 0.01f * floorf(100.0f * damage / max_shield) * max_shield;
           target->shield -= shield_damage;
 
           shooter_stats->shield_damage_dealt += (uint64_t)shield_damage;
@@ -403,8 +368,7 @@ static void fire(const struct units_attributes *restrict units_attributes,
         }
 
         if (hull != 0.0f) {
-          float max_hull = 0.1f * target_attrs->armor *
-                           (1.0f + 0.1f * defender->armor_technology);
+          float max_hull = 0.1f * target_attrs->armor * (1.0f + 0.1f * defender->armor_technology);
           if (hull < 0.7f * max_hull) {
             r = RANDOM_NEXT(r);
             if (hull < (1.0f / (float)RANDOM_MAX) * (float)r * max_hull) {
@@ -422,10 +386,8 @@ static void fire(const struct units_attributes *restrict units_attributes,
   *random = r;
 }
 
-static void
-update_units(const struct units_attributes *restrict units_attributes,
-             struct combatant *restrict combatants,
-             struct party *restrict party, uint32_t round) {
+static void update_units(const struct units_attributes *restrict units_attributes,
+                         struct combatant *restrict combatants, struct party *restrict party, uint32_t round) {
   const uint8_t num_kinds = units_attributes->num_kinds;
   struct unit *units = party->units;
   uint64_t num_alive = party->num_alive, n = 0;
@@ -442,16 +404,14 @@ update_units(const struct units_attributes *restrict units_attributes,
   party->num_alive = n;
 }
 
-static void
-update_combatants(const struct units_attributes *restrict units_attributes,
-                  struct combatant *restrict combatants,
-                  uint32_t num_combatants, struct party *restrict party) {
+static void update_combatants(const struct units_attributes *restrict units_attributes,
+                              struct combatant *restrict combatants, uint32_t num_combatants,
+                              struct party *restrict party) {
   const uint8_t num_kinds = units_attributes->num_kinds;
 
   for (uint32_t i = 0; i < num_combatants; i++) {
     struct combatant *combatant = &combatants[i];
-    memset(combatant->unit_groups, 0,
-           num_kinds * sizeof(*combatant->unit_groups));
+    memset(combatant->unit_groups, 0, num_kinds * sizeof(*combatant->unit_groups));
   }
 
   for (uint64_t i = 0; i < party->num_alive; i++) {
@@ -460,28 +420,24 @@ update_combatants(const struct units_attributes *restrict units_attributes,
   }
 }
 
-static bool fight(const struct units_attributes *restrict units_attributes,
-                  struct combatant *restrict attackers, uint32_t num_attackers,
-                  struct combatant *restrict defenders, uint32_t num_defenders,
+static bool fight(const struct units_attributes *restrict units_attributes, struct combatant *restrict attackers,
+                  uint32_t num_attackers, struct combatant *restrict defenders, uint32_t num_defenders,
                   uint32_t *restrict num_rounds, uint32_t *restrict random) {
   bool ret = false;
 
-  struct party *attackers_party =
-      create_party(units_attributes, attackers, num_attackers);
+  struct party *attackers_party = create_party(units_attributes, attackers, num_attackers);
   if (attackers_party == NULL) {
     goto out;
   }
 
-  struct party *defenders_party =
-      create_party(units_attributes, defenders, num_defenders);
+  struct party *defenders_party = create_party(units_attributes, defenders, num_defenders);
   if (defenders_party == NULL) {
     goto out_attackers_party;
   }
 
   uint32_t round = 0;
 
-  while (round < MAX_ROUNDS && attackers_party->num_alive > 0 &&
-         defenders_party->num_alive > 0) {
+  while (round < MAX_ROUNDS && attackers_party->num_alive > 0 && defenders_party->num_alive > 0) {
     restore_shields(units_attributes, attackers_party);
     restore_shields(units_attributes, defenders_party);
 
@@ -496,10 +452,8 @@ static bool fight(const struct units_attributes *restrict units_attributes,
 
   *num_rounds = round;
 
-  update_combatants(units_attributes, attackers, num_attackers,
-                    attackers_party);
-  update_combatants(units_attributes, defenders, num_defenders,
-                    defenders_party);
+  update_combatants(units_attributes, attackers, num_attackers, attackers_party);
+  update_combatants(units_attributes, defenders, num_defenders, defenders_party);
 
   ret = true;
 
@@ -512,23 +466,17 @@ out:
   return ret;
 }
 
-static void dump_stats(FILE *restrict file,
-                       const struct combatant *restrict combatants,
-                       uint32_t num_combatants, uint32_t num_rounds,
-                       uint8_t num_kinds) {
+static void dump_stats(FILE *restrict file, const struct combatant *restrict combatants, uint32_t num_combatants,
+                       uint32_t num_rounds, uint8_t num_kinds) {
   for (uint32_t i = 0; i < num_combatants; i++) {
     const struct combatant *combatant = &combatants[i];
     for (uint32_t round = 0; round < num_rounds; round++) {
-      const struct unit_group_stats *stats =
-          &combatant->stats[round * num_kinds];
+      const struct unit_group_stats *stats = &combatant->stats[round * num_kinds];
 
       for (uint8_t kind = 0; kind < num_kinds; kind++) {
         const struct unit_group_stats *s = &stats[kind];
-        fprintf(file,
-                "%" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-                " %" PRIu64 " %" PRIu64 "\n",
-                s->times_fired, s->times_was_shot, s->shield_damage_dealt,
-                s->hull_damage_dealt, s->shield_damage_taken,
+        fprintf(file, "%" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
+                s->times_fired, s->times_was_shot, s->shield_damage_dealt, s->hull_damage_dealt, s->shield_damage_taken,
                 s->hull_damage_taken, s->num_remaining_units);
       }
 
@@ -569,8 +517,7 @@ static int battle(uint32_t seed) {
   }
 
   uint32_t num_combatants = num_attackers + num_defenders;
-  struct combatant *combatants =
-      load_combatants(stdin, units_attributes, num_combatants);
+  struct combatant *combatants = load_combatants(stdin, units_attributes, num_combatants);
   if (combatants == NULL) {
     goto out_units_attributes;
   }
@@ -579,13 +526,11 @@ static int battle(uint32_t seed) {
   struct combatant *defenders = &combatants[num_attackers];
 
   uint32_t num_rounds = 0;
-  fight(units_attributes, attackers, num_attackers, defenders, num_defenders,
-        &num_rounds, &seed);
+  fight(units_attributes, attackers, num_attackers, defenders, num_defenders, &num_rounds, &seed);
 
   printf("%" PRIu32 "\n\n", num_rounds);
 
-  dump_stats(stdout, combatants, num_attackers + num_defenders, num_rounds,
-             units_attributes->num_kinds);
+  dump_stats(stdout, combatants, num_attackers + num_defenders, num_rounds, units_attributes->num_kinds);
 
   ret = 0;
 
