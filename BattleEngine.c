@@ -134,14 +134,14 @@ static struct units_attributes *load_units_attributes(FILE *file) {
       if (n != 2) {
         fprintf(stderr,
                 "Parsing units attributes failed, cannot scan rapid fire "
-                "#%" PRIu8 " for kind #%" PRIu8 "\n",
+                "#%" PRIu32 " for kind #%" PRIu8 "\n",
                 i, kind);
         goto fail_rapid_fire;
       }
 
       if (target_kind >= num_kinds) {
         fprintf(stderr,
-                "Parsing units attributes failed, rapid fire #%" PRIu8 " is "
+                "Parsing units attributes failed, rapid fire #%" PRIu32 " is "
                 "invalid for kind #%" PRIu8 "\n",
                 i, kind);
         goto fail_rapid_fire;
