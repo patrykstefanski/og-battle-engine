@@ -24,6 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined _MSC_VER && _MSC_VER >= 1900
+#  define restrict __restrict
+#elif defined _MSC_VER
+#  define restrict
+#endif
+
 /* Lehmer RNG. */
 #define RANDOM_MULTIPLIER 48271UL
 #define RANDOM_MODULUS 2147483647UL
