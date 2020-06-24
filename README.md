@@ -13,8 +13,8 @@ A battle engine for OGame and its clones with an API for PHP and Python.
 
 ### Build battle engine
 ```
-$ cmake -B build -DCMAKE_BUILD_TYPE=Release .
-$ make -C build
+$ cmake -B build -DCMAKE_BUILD_TYPE=Release
+$ cmake --build build
 ```
 
 ### Run examples
