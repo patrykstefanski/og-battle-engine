@@ -1,6 +1,8 @@
 # OG Battle Engine
 A battle engine for OGame and its clones with an API for PHP and Python.
 
+[![CI](https://github.com/patrykstefanski/og-battle-engine/workflows/CI/badge.svg)](https://github.com/patrykstefanski/og-battle-engine/actions)
+
 ## Requirements
 * C99 compiler
 * CMake >= 3.1
