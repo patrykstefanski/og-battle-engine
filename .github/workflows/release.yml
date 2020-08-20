@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+  create_release:
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  build_release:
+    name: Build release (${{ matrix.os }})
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+        - os: macos-latest
+          asset_path: ./build/BattleEngine
+          asset_name: BattleEngine-macos
+        - os: ubuntu-latest
+          asset_path: ./build/BattleEngine
+          asset_name: BattleEngine-linux
+        - os: windows-latest
+          asset_path: ./build/Release/BattleEngine.exe
+          asset_name: BattleEngine-win.exe
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+    - name: Build
+      run: cmake --build build --config Release
+    - name: Upload release
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ${{ matrix.asset_path }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_content_type: application/ocet-stream
