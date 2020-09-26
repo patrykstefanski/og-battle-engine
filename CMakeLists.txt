@@ -11,7 +11,7 @@ option(ANALYZER "Enable static analyzer" OFF)
 add_executable(BattleEngine BattleEngine.c)
 set_property(TARGET BattleEngine PROPERTY C_STANDARD 99)
 
-if(CMAKE_C_COMPILER_ID STREQUAL Clang OR CMAKE_COMPILER_IS_GNUCC)
+if(CMAKE_C_COMPILER_ID MATCHES Clang OR CMAKE_COMPILER_IS_GNUCC)
   target_link_libraries(BattleEngine m)
   target_compile_options(BattleEngine PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 
@@ -39,7 +39,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL Clang OR CMAKE_COMPILER_IS_GNUCC)
   endif()
 
   if(ANALYZER)
-    if(CMAKE_C_COMPILER_ID STREQUAL Clang)
+    if(CMAKE_C_COMPILER_ID MATCHES Clang)
       target_compile_options(BattleEngine PRIVATE --analyze)
     else()
       target_compile_options(BattleEngine PRIVATE -fanalyzer)
