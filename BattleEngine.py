@@ -189,8 +189,8 @@ class BattleEngine:
             rounds_stats.append(round_stats)
         return CombatantOutcome(rounds_stats)
 
-    def battle(self, attackers: List[Combatant], defenders: List[Combatant], seed: int = 0,
-               timeout=None) -> BattleOutcome:
+    def simulate(self, attackers: List[Combatant], defenders: List[Combatant], seed: int = 0,
+                 num_simulations: int = 1, timeout=None) -> List[BattleOutcome]:
         self._assert_valid_combatants('attackers', attackers)
         self._assert_valid_combatants('defenders', defenders)
 
@@ -204,7 +204,7 @@ class BattleEngine:
         combatants_stdin = self._make_stdin_for_combatants(attackers, defenders)
         stdin = attrs_stdin + '\n' + combatants_stdin
 
-        args = [self.engine_path, str(seed)]
+        args = [self.engine_path, str(seed), str(num_simulations)]
         p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         try:
@@ -223,16 +223,25 @@ class BattleEngine:
 
         out = outs[0].decode('ascii')
         result = list(map(int, out.split()))
-        num_rounds = result[0]
-        data = result[1:]
 
-        outcome_size = num_rounds * num_kinds * 7
-        outcomes = []
-        for i in range(num_attackers + num_defenders):
-            d = data[i * outcome_size:(i + 1) * outcome_size]
-            outcome = self.parse_combatant_outcome(num_rounds, d)
-            outcomes.append(outcome)
+        simulations = []
 
-        attackers_outcomes, defenders_outcomes = outcomes[:num_attackers], outcomes[num_attackers:]
+        idx = 0
+        for i in range(num_simulations):
+            num_rounds = result[idx]
+            idx += 1
 
-        return BattleOutcome(num_rounds, attackers_outcomes, defenders_outcomes)
+            outcome_size = num_rounds * num_kinds * 7
+            outcomes = []
+            for j in range(num_attackers + num_defenders):
+                d = result[idx:idx + outcome_size]
+                idx += outcome_size
+                outcome = self.parse_combatant_outcome(num_rounds, d)
+                outcomes.append(outcome)
+
+            attackers_outcomes, defenders_outcomes = outcomes[:num_attackers], outcomes[num_attackers:]
+
+            simulation = BattleOutcome(num_rounds, attackers_outcomes, defenders_outcomes)
+            simulations.append(simulation)
+
+        return simulations

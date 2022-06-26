@@ -5,7 +5,9 @@ error_reporting(E_ALL);
 require_once 'BattleEngine.php';
 require_once 'OG.php';
 
-use BattleEngine\{BattleEngine, Combatant, CombatantOutcome};
+use BattleEngine\BattleEngine;
+use BattleEngine\Combatant;
+use BattleEngine\CombatantOutcome;
 use OG\OG;
 
 $attackers = [
@@ -95,7 +97,7 @@ printCombatants('Attacker', $attackers);
 printCombatants('Defender', $defenders);
 
 $battleEngine = new BattleEngine('./build/BattleEngine', OG::$unitsAttributes);
-$outcome = $battleEngine->battle($attackers, $defenders);
+$outcome = $battleEngine->simulate($attackers, $defenders)[0];
 
 $numRounds = $outcome->getNumRounds();
 $attackersOutcomes = $outcome->getAttackersOutcomes();

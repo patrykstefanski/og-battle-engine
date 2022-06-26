@@ -166,6 +166,13 @@ static void cleanup_units_attributes(struct units_attributes *units_attributes) 
   free(units_attributes);
 }
 
+static size_t calc_combatants_alloc_size(const struct units_attributes *restrict units_attributes,
+                                         uint32_t num_combatants) {
+  const uint8_t num_kinds = units_attributes->num_kinds;
+  return num_combatants * sizeof(struct combatant) + num_combatants * num_kinds * sizeof(uint64_t) +
+         num_combatants * MAX_ROUNDS * num_kinds * sizeof(struct unit_group_stats);
+}
+
 static struct combatant *load_combatants(FILE *restrict file, const struct units_attributes *restrict units_attributes,
                                          uint32_t num_combatants) {
   const uint8_t num_kinds = units_attributes->num_kinds;
@@ -174,8 +181,7 @@ static struct combatant *load_combatants(FILE *restrict file, const struct units
   assert(num_combatants > 0 && num_combatants <= 2 * 256);
   assert(num_kinds > 0);
 
-  size_t total_size = num_combatants * sizeof(struct combatant) + num_combatants * num_kinds * sizeof(uint64_t) +
-                      num_combatants * MAX_ROUNDS * num_kinds * sizeof(struct unit_group_stats);
+  size_t total_size = calc_combatants_alloc_size(units_attributes, num_combatants);
   struct combatant *combatants = calloc(total_size, 1);
   if (combatants == NULL) {
     fputs("Loading combatants failed, allocation of combatants failed\n", stderr);
@@ -485,8 +491,12 @@ static void dump_stats(FILE *restrict file, const struct combatant *restrict com
   }
 }
 
-static int battle(uint32_t seed) {
+static int simulate(uint32_t seed, uint32_t num_simulations) {
   int n, ret = 1;
+
+  if (num_simulations == 0) {
+    return 0;
+  }
 
   struct units_attributes *units_attributes = load_units_attributes(stdin);
   if (units_attributes == NULL) {
@@ -522,18 +532,37 @@ static int battle(uint32_t seed) {
     goto out_units_attributes;
   }
 
+  struct combatant *combatants_copy = NULL;
+  size_t combatants_size = 0;
+  if (num_simulations > 1) {
+    combatants_size = calc_combatants_alloc_size(units_attributes, num_combatants);
+    combatants_copy = malloc(combatants_size);
+    if (combatants_copy == NULL) {
+      goto out_combatants;
+    }
+    memcpy(combatants_copy, combatants, combatants_size);
+  }
+
   struct combatant *attackers = combatants;
   struct combatant *defenders = &combatants[num_attackers];
 
-  uint32_t num_rounds = 0;
-  fight(units_attributes, attackers, num_attackers, defenders, num_defenders, &num_rounds, &seed);
+  for (uint32_t n = 0; n < num_simulations; n++) {
+    if (n != 0) {
+      memcpy(combatants, combatants_copy, combatants_size);
+    }
 
-  printf("%" PRIu32 "\n\n", num_rounds);
+    uint32_t num_rounds = 0;
+    fight(units_attributes, attackers, num_attackers, defenders, num_defenders, &num_rounds, &seed);
 
-  dump_stats(stdout, combatants, num_attackers + num_defenders, num_rounds, units_attributes->num_kinds);
+    printf("%" PRIu32 "\n\n", num_rounds);
+
+    dump_stats(stdout, combatants, num_attackers + num_defenders, num_rounds, units_attributes->num_kinds);
+  }
 
   ret = 0;
 
+  free(combatants_copy);
+out_combatants:
   free(combatants);
 out_units_attributes:
   cleanup_units_attributes(units_attributes);
@@ -544,8 +573,8 @@ out:
 int main(int argc, char *argv[]) {
   int n;
 
-  if (argc != 2) {
-    fprintf(stderr, "Usage: %s [SEED]\n", argv[0]);
+  if (argc != 3) {
+    fprintf(stderr, "Usage: %s <SEED> <NUM_SIMULATIONS>\n", argv[0]);
     return 1;
   }
 
@@ -561,5 +590,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  return battle(seed);
+  uint32_t num_simulations;
+  n = sscanf(argv[2], "%" SCNu32, &num_simulations);
+  if (n != 1) {
+    fputs("Scanning num_simulations failed\n", stderr);
+    return 1;
+  }
+
+  return simulate(seed, num_simulations);
 }

@@ -27,7 +27,7 @@ $ cmake --build build --config Release
 
 ### Run examples
 Make sure you specify the correct path to the obtained battle engine binary in the examples.
-For instance, in _example.php_ you need to replace the path in:
+For instance, in _example-battle.php_ you need to replace the path in:
 
 ```php
 $battleEngine = new BattleEngine('./build/BattleEngine', OG::$unitsAttributes);
@@ -36,6 +36,6 @@ $battleEngine = new BattleEngine('./build/BattleEngine', OG::$unitsAttributes);
 After that, you can run the examples:
 
 ```
-$ php example.php
-$ python example.py
+$ php example-battle.php
+$ python example-battle.py
 ```

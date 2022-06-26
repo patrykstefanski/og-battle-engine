@@ -26,17 +26,18 @@ use InvalidArgumentException;
 
 class UnitAttributes
 {
-    private $weapons;
-    private $shield;
-    private $armor;
-    private $rapidFire;
+    private float $weapons;
+    private float $shield;
+    private float $armor;
+    private array $rapidFire;
 
     public function __construct(
         float $weapons,
         float $shield,
         float $armor,
         array $rapidFire
-    ) {
+    )
+    {
         if ($weapons <= 0.0) {
             throw new InvalidArgumentException('weapons must be greater than 0');
         }
@@ -80,17 +81,18 @@ class UnitAttributes
 
 class Combatant
 {
-    private $weaponsTechnology;
-    private $shieldingTechnology;
-    private $armorTechnology;
-    private $unitGroups;
+    private int $weaponsTechnology;
+    private int $shieldingTechnology;
+    private int $armorTechnology;
+    private array $unitGroups;
 
     public function __construct(
-        int $weaponsTechnology,
-        int $shieldingTechnology,
-        int $armorTechnology,
+        int   $weaponsTechnology,
+        int   $shieldingTechnology,
+        int   $armorTechnology,
         array $unitGroups
-    ) {
+    )
+    {
         if ($weaponsTechnology < 0 || $weaponsTechnology > 255) {
             throw new InvalidArgumentException('weaponsTechnology must be between 0 and 255');
         }
@@ -134,13 +136,13 @@ class Combatant
 
 class UnitGroupStats
 {
-    private $timesFired;
-    private $timesWasShot;
-    private $shieldDamageDealt;
-    private $hullDamageDealt;
-    private $shieldDamageTaken;
-    private $hullDamageTaken;
-    private $numRemainingUnits;
+    private int $timesFired;
+    private int $timesWasShot;
+    private int $shieldDamageDealt;
+    private int $hullDamageDealt;
+    private int $shieldDamageTaken;
+    private int $hullDamageTaken;
+    private int $numRemainingUnits;
 
     public function __construct(
         int $timesFired,
@@ -150,7 +152,8 @@ class UnitGroupStats
         int $shieldDamageTaken,
         int $hullDamageTaken,
         int $numRemainingUnits
-    ) {
+    )
+    {
         $this->timesFired = $timesFired;
         $this->timesWasShot = $timesWasShot;
         $this->shieldDamageDealt = $shieldDamageDealt;
@@ -198,7 +201,7 @@ class UnitGroupStats
 
 class CombatantOutcome
 {
-    private $roundsStats;
+    private array $roundsStats;
 
     public function __construct(array $roundsStats)
     {
@@ -218,15 +221,16 @@ class CombatantOutcome
 
 class BattleOutcome
 {
-    private $numRounds;
-    private $attackersOutcomes;
-    private $defendersOutcomes;
+    private int $numRounds;
+    private array $attackersOutcomes;
+    private array $defendersOutcomes;
 
     public function __construct(
-        int $numRounds,
+        int   $numRounds,
         array $attackersOutcomes,
         array $defendersOutcomes
-    ) {
+    )
+    {
         $this->numRounds = $numRounds;
         $this->attackersOutcomes = $attackersOutcomes;
         $this->defendersOutcomes = $defendersOutcomes;
@@ -254,8 +258,8 @@ class Error extends Exception
 
 class BattleEngine
 {
-    private $enginePath;
-    private $unitsAttributes;
+    private string $enginePath;
+    private array $unitsAttributes;
 
     public function __construct(string $enginePath, array $unitsAttributes)
     {
@@ -354,7 +358,8 @@ class BattleEngine
     private function makeStdinForCombatants(
         array $attackers,
         array $defenders
-    ): string {
+    ): string
+    {
         $stdin = [];
         $stdin[] = sprintf('%d %d', count($attackers), count($defenders));
         $stdin[] = '';
@@ -370,9 +375,10 @@ class BattleEngine
     }
 
     private function parseCombatantOutcome(
-        int $numRounds,
+        int   $numRounds,
         array $data
-    ): CombatantOutcome {
+    ): CombatantOutcome
+    {
         $numKinds = count($this->unitsAttributes);
         $index = 0;
         $roundsStats = [];
@@ -404,7 +410,12 @@ class BattleEngine
         return new CombatantOutcome($roundsStats);
     }
 
-    public function battle(array $attackers, array $defenders, int $seed = 0)
+    public function simulate(
+        array $attackers,
+        array $defenders,
+        int   $seed = 0,
+        int   $numSimulations = 1
+    ): array
     {
         $this->assertValidCombatants('attackers', $attackers);
         $this->assertValidCombatants('defenders', $defenders);
@@ -417,7 +428,7 @@ class BattleEngine
             $seed = rand(1, 1000000000);
         }
 
-        $cmd = $this->enginePath . ' ' . $seed;
+        $cmd = $this->enginePath . ' ' . $seed . ' ' . $numSimulations;
         $descriptorspec = [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],
@@ -457,22 +468,32 @@ class BattleEngine
         $numDefenders = count($defenders);
 
         $result = array_map('intval', preg_split('/\s+/', $stdout));
-        $numRounds = array_shift($result);
 
-        $outcomeSize = $numRounds * $numKinds * 7;
-        $outcomes = [];
-        for ($i = 0; $i < $numAttackers + $numDefenders; $i++) {
-            $d = array_slice($result, $i * $outcomeSize, $outcomeSize);
-            $outcomes[] = $this->parseCombatantOutcome($numRounds, $d);
+        $simulations = [];
+
+        $idx = 0;
+        for ($i = 0; $i < $numSimulations; $i++) {
+            $numRounds = $result[$idx];
+            $idx++;
+
+            $outcomeSize = $numRounds * $numKinds * 7;
+            $outcomes = [];
+            for ($j = 0; $j < $numAttackers + $numDefenders; $j++) {
+                $d = array_slice($result, $idx, $outcomeSize);
+                $idx += $outcomeSize;
+                $outcomes[] = $this->parseCombatantOutcome($numRounds, $d);
+            }
+
+            $attackersOutcomes = array_slice($outcomes, 0, $numAttackers);
+            $defendersOutcomes = array_slice($outcomes, $numAttackers);
+
+            $simulations[] = new BattleOutcome(
+                $numRounds,
+                $attackersOutcomes,
+                $defendersOutcomes
+            );
         }
 
-        $attackersOutcomes = array_slice($outcomes, 0, $numAttackers);
-        $defendersOutcomes = array_slice($outcomes, $numAttackers);
-
-        return new BattleOutcome(
-            $numRounds,
-            $attackersOutcomes,
-            $defendersOutcomes
-        );
+        return $simulations;
     }
 }

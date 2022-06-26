@@ -75,7 +75,7 @@ print_combatants('Attacker', attackers)
 print_combatants('Defender', defenders)
 
 engine = BattleEngine('./build/BattleEngine', OG.units_attributes)
-outcome = engine.battle(attackers, defenders)
+outcome = engine.simulate(attackers, defenders)[0]
 
 num_rounds = outcome.num_rounds
 attackers_outcomes = outcome.attackers_outcomes
